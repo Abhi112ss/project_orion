@@ -1,3 +1,4 @@
+/*src/sections/vision-section.tsx*/
 import { Reveal } from "@/components/reveal";
 
 export function VisionSection() {

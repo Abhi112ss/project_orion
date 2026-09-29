@@ -1,3 +1,4 @@
+/*src/components/dashboard-shell.tsx*/
 import { SignOutButton } from "@/components/sign-out-button";
 import type { SessionBundle } from "@/lib/auth/types";
 

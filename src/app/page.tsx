@@ -1,3 +1,4 @@
+/*src/app/page.tsx*/
 import type { Metadata } from "next";
 import { Navigation } from "@/components/navigation";
 import { HeroSection } from "@/sections/hero-section";

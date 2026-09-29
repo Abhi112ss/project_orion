@@ -1,3 +1,4 @@
+/*src/lib/auth/types.ts*/
 export type Role = "tpo" | "coordinator" | "company_hr" | "student" | "super_admin";
 
 /**

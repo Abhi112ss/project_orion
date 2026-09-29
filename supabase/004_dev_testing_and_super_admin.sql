@@ -1,3 +1,5 @@
+--supabase/004_dev_testing_and_super_admin.sql
+
 -- Run this AFTER 003_add_super_admin_role.sql has been run and committed
 -- as its own separate query.
 

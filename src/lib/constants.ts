@@ -1,3 +1,4 @@
+/*src/lib/constants.ts*/
 export const NAV_LINKS = [
   { label: "Features", href: "#features" },
   { label: "Solutions", href: "#why-orion" },

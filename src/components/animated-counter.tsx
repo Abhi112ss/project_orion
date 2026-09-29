@@ -1,3 +1,4 @@
+/*src/components/animated-counter.tsx*/
 "use client";
 
 import { useCounter } from "@/hooks/use-counter";

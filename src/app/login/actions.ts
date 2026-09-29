@@ -1,3 +1,5 @@
+/*src/app/login/actions.ts*/
+
 "use server";
 
 import { headers } from "next/headers";
@@ -6,7 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionBundle } from "@/lib/auth/get-session-bundle";
 import { roleHome } from "@/lib/auth/role-routes";
 import { findCollegeIdByEmailDomain, provisionStudentProfile } from "@/lib/auth/provision-student";
+import { isOtpRateLimited, recordOtpAttempt } from "@/lib/auth/rate-limit";
 import { logAudit } from "@/lib/audit/log";
+import { emailSchema, otpCodeSchema } from "@/lib/validation/schemas";
 import type { Role } from "@/lib/auth/types";
 
 /**
@@ -41,7 +45,13 @@ export async function signInWithGoogle(redirectTo?: string, intendedRole?: Role)
  * is allowed, but only when the email's domain matches a college that
  * has registered it — everything else still gets no account.
  */
-export async function sendEmailOtp(email: string, intendedRole: Role) {
+export async function sendEmailOtp(rawEmail: string, intendedRole: Role) {
+  const parsedEmail = emailSchema.safeParse(rawEmail);
+  if (!parsedEmail.success) {
+    return { success: false as const, message: "Enter a valid email address." };
+  }
+  const email = parsedEmail.data;
+
   const supabase = await createClient();
 
   let shouldCreateUser = false;
@@ -70,24 +80,49 @@ export async function sendEmailOtp(email: string, intendedRole: Role) {
     };
   }
 
+  await logAudit({ actorEmail: email, action: "otp_sent", metadata: { intendedRole } });
+
   return { success: true as const };
 }
 
 /**
- * Verifies the OTP. If no SessionBundle exists yet (no profile row)
- * and the intended role was "student", attempts the domain-gated
+ * Verifies the OTP. Rate-limited against brute-force guessing (see
+ * lib/auth/rate-limit.ts) before Supabase is even asked to check the
+ * code. If no SessionBundle exists yet (no profile row) and the
+ * intended role was "student", attempts the domain-gated
  * self-provisioning path before deciding access is denied. Staff
  * roles never hit the provisioning branch, regardless of what a
  * client sends — a missing staff profile is always "no access".
- * Every terminal outcome (success, denial, self-registration) is
- * recorded to the audit log.
+ * Every terminal outcome is recorded to the audit log.
  */
 export async function verifyEmailOtp(
-  email: string,
-  token: string,
+  rawEmail: string,
+  rawToken: string,
   redirectTo?: string,
   intendedRole?: Role
 ) {
+  const parsedEmail = emailSchema.safeParse(rawEmail);
+  const parsedToken = otpCodeSchema.safeParse(rawToken);
+
+  if (!parsedEmail.success || !parsedToken.success) {
+    return { success: false as const, message: "Enter the 6-digit code exactly as sent." };
+  }
+
+  const email = parsedEmail.data;
+  const token = parsedToken.data;
+
+  if (await isOtpRateLimited(email)) {
+    await logAudit({
+      actorEmail: email,
+      action: "otp_verify_failed",
+      metadata: { intendedRole, reason: "rate_limited" },
+    });
+    return {
+      success: false as const,
+      message: "Too many incorrect attempts. Please wait a few minutes and try again.",
+    };
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.verifyOtp({
@@ -97,10 +132,11 @@ export async function verifyEmailOtp(
   });
 
   if (error) {
+    await recordOtpAttempt(email);
     await logAudit({
       actorEmail: email,
       action: "otp_verify_failed",
-      metadata: { intendedRole },
+      metadata: { intendedRole, reason: "invalid_or_expired" },
     });
     return {
       success: false as const,

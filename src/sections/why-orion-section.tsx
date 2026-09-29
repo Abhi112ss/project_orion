@@ -1,3 +1,4 @@
+/*src/sections/why-orion-section.tsx*/
 import { CheckCircle2 } from "lucide-react";
 import { SectionHeading } from "@/components/section-heading";
 import { Reveal } from "@/components/reveal";

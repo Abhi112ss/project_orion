@@ -1,3 +1,5 @@
+
+/*src/components/sign-out-button.tsx*/
 import { signOut } from "@/lib/auth/sign-out";
 
 export function SignOutButton() {

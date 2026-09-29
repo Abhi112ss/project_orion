@@ -1,3 +1,4 @@
+/*src/lib/auth/get-session-bundle.ts*/
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionBundle } from "@/lib/auth/types";

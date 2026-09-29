@@ -1,3 +1,4 @@
+/*supabase/005_audit_logs.sql*/
 create table public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid references auth.users (id) on delete set null,

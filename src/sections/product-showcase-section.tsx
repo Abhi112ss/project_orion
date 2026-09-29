@@ -1,3 +1,4 @@
+/*src/sections/product-showcase-section.tsx*/
 "use client";
 
 import { useGsapContext } from "@/hooks/use-gsap-context";

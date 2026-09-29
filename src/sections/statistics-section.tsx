@@ -1,3 +1,4 @@
+/*src/sections/statistics-section.tsx*/
 import { SectionHeading } from "@/components/section-heading";
 import { Reveal } from "@/components/reveal";
 import { AnimatedCounter } from "@/components/animated-counter";

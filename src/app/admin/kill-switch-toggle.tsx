@@ -1,3 +1,4 @@
+/*src/app/admin/kill-switch-toggle.tsx*/
 "use client";
 
 import { useState, useTransition } from "react";

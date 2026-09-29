@@ -1,3 +1,4 @@
+/*src/sections/trust-section.tsx*/
 import { Reveal } from "@/components/reveal";
 
 const ROLES = ["Students", "Recruiters", "Placement Officers", "Coordinators"];

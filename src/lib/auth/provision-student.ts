@@ -1,3 +1,4 @@
+/*src/lib/auth/provision-student.ts*/
 import { createClient } from "@/lib/supabase/server";
 
 // Kept intentionally small and student-only. Staff roles are never
@@ -6,12 +7,22 @@ import { createClient } from "@/lib/supabase/server";
 const STUDENT_DEFAULT_PERMISSIONS = ["view_drives", "apply_to_drives", "manage_own_profile"];
 
 /**
+ * Pure — no I/O — so it's directly unit-testable without mocking
+ * Supabase. Extracted out of findCollegeIdByEmailDomain for that
+ * reason.
+ */
+export function extractDomain(email: string): string | null {
+  const domain = email.trim().toLowerCase().split("@")[1];
+  return domain || null;
+}
+
+/**
  * Looks up whether a college has registered this email's domain for
  * student self-registration. Returns the college id, or null if the
  * domain isn't recognized (self-registration stays closed for it).
  */
 export async function findCollegeIdByEmailDomain(email: string): Promise<string | null> {
-  const domain = email.trim().toLowerCase().split("@")[1];
+  const domain = extractDomain(email);
   if (!domain) return null;
 
   const supabase = await createClient();

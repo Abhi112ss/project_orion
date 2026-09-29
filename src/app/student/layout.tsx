@@ -1,3 +1,4 @@
+/*src/app/student/layout.tsx*/
 import { requireRole } from "@/lib/auth/require-role";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {

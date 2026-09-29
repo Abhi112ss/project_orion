@@ -1,8 +1,12 @@
+/*src/app/admin/page.tsx*/
+
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionBundle } from "@/lib/auth/get-session-bundle";
 import { KillSwitchToggle } from "@/app/admin/kill-switch-toggle";
 import { StaffProvisionForm } from "@/app/admin/staff-form";
+import { StaffList } from "@/app/admin/staff-list";
+import { FeatureFlagsPanel } from "@/app/admin/feature-flags-panel";
 
 const DASHBOARDS = [
   { href: "/tpo", label: "TPO" },
@@ -11,13 +15,27 @@ const DASHBOARDS = [
   { href: "/student", label: "Student" },
 ];
 
+const STAFF_ROLES = ["tpo", "coordinator", "company_hr"] as const;
+
 export default async function AdminPage() {
   const supabase = await createClient();
   const bundle = (await getSessionBundle())!;
 
-  const [{ data: colleges }, { data: settings }, { data: recentActivity }] = await Promise.all([
+  const [
+    { data: colleges },
+    { data: settings },
+    { data: staff },
+    { data: flags },
+    { data: recentActivity },
+  ] = await Promise.all([
     supabase.from("colleges").select("id, name").order("name"),
     supabase.from("platform_settings").select("maintenance_mode").eq("id", true).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("id, email, role, college_id, is_active")
+      .in("role", STAFF_ROLES)
+      .order("email"),
+    supabase.from("feature_flags").select("key, enabled, description").order("key"),
     supabase
       .from("audit_logs")
       .select("action, actor_email, target_type, metadata, created_at")
@@ -57,6 +75,23 @@ export default async function AdminPage() {
           </p>
           <div className="mt-4">
             <StaffProvisionForm colleges={colleges ?? []} />
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-xl border border-white/10 bg-[#111827]/40 p-5">
+          <h2 className="text-sm font-medium text-[#F9FAFB]">Staff accounts</h2>
+          <p className="mt-1 text-xs text-[#9CA3AF]">
+            Edit role/college, or disable/enable access.
+          </p>
+          <div className="mt-4">
+            <StaffList staff={staff ?? []} colleges={colleges ?? []} />
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-xl border border-white/10 bg-[#111827]/40 p-5">
+          <h2 className="text-sm font-medium text-[#F9FAFB]">Feature flags</h2>
+          <div className="mt-4">
+            <FeatureFlagsPanel flags={flags ?? []} />
           </div>
         </section>
 

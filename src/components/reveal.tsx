@@ -1,3 +1,4 @@
+/*src/components/reveal.tsx*/
 "use client";
 
 import { type ReactNode } from "react";

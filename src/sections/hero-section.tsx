@@ -1,3 +1,4 @@
+/*src/sections/hero-section.tsx*/
 "use client";
 
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,5 @@
+--/supabase/002_college_domains.sql
+
 -- Run this once against your existing project.
 -- Safe to re-run even if a previous attempt got partway through.
 

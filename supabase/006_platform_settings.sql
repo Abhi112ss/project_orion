@@ -1,3 +1,5 @@
+/*supabase/006_platform_settings.sql*/
+
 -- Singleton settings row (id is always `true` — the check constraint
 -- makes a second row impossible).
 create table public.platform_settings (

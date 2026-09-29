@@ -1,9 +1,16 @@
+/*src/app/admin/actions.ts*/
+
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { logAudit } from "@/lib/audit/log";
+import {
+  provisionStaffSchema,
+  updateStaffSchema,
+  featureFlagKeySchema,
+} from "@/lib/validation/schemas";
 import type { Role } from "@/lib/auth/types";
 
 /**
@@ -39,26 +46,33 @@ export async function setMaintenanceMode(enabled: boolean) {
   return { success: true as const };
 }
 
-type StaffRole = Extract<Role, "tpo" | "coordinator" | "company_hr">;
-
 /**
  * Creates a staff account end-to-end: a Supabase Auth user (via the
  * service-role client, since only that can create users directly) and
  * the matching profiles row — never through the student self-service
- * RLS path. This is the "admin console" replacement for the manual
- * SQL inserts used earlier.
+ * RLS path.
  */
 export async function provisionStaff(input: {
   email: string;
   fullName: string;
-  role: StaffRole;
+  role: Extract<Role, "tpo" | "coordinator" | "company_hr">;
   collegeId: string;
 }) {
   const bundle = await requireRole(["super_admin"]);
+
+  const parsed = provisionStaffSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      message: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  const { email, fullName, role, collegeId } = parsed.data;
+
   const admin = createAdminClient();
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: input.email,
+    email,
     email_confirm: true,
   });
 
@@ -79,10 +93,10 @@ export async function provisionStaff(input: {
 
   const { error: profileError } = await admin.from("profiles").insert({
     id: userId,
-    email: input.email,
-    full_name: input.fullName || null,
-    role: input.role,
-    college_id: input.collegeId,
+    email,
+    full_name: fullName || null,
+    role,
+    college_id: collegeId,
     permissions: [],
     is_active: true,
   });
@@ -100,7 +114,119 @@ export async function provisionStaff(input: {
     action: "staff_provisioned",
     targetType: "profile",
     targetId: userId,
-    metadata: { email: input.email, role: input.role, collegeId: input.collegeId },
+    metadata: { email, role, collegeId },
+  });
+
+  return { success: true as const };
+}
+
+/**
+ * Changes an existing staff member's role and/or college. Uses the
+ * service-role client since regular RLS has no update policy for
+ * profiles at all — every profile change beyond self-registration is
+ * an explicit admin action, never implicit.
+ */
+export async function updateStaffMember(
+  profileId: string,
+  updates: { role: string; collegeId: string }
+) {
+  const bundle = await requireRole(["super_admin"]);
+
+  const parsed = updateStaffSchema.safeParse(updates);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      message: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+
+  const admin = createAdminClient();
+
+  const { data: before } = await admin
+    .from("profiles")
+    .select("role, college_id")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ role: parsed.data.role, college_id: parsed.data.collegeId })
+    .eq("id", profileId);
+
+  if (error) {
+    return { success: false as const, message: error.message };
+  }
+
+  await logAudit({
+    actorId: bundle.userId,
+    actorEmail: bundle.email,
+    action: "role_changed",
+    targetType: "profile",
+    targetId: profileId,
+    metadata: { before, after: parsed.data },
+  });
+
+  return { success: true as const };
+}
+
+/**
+ * Toggles a staff (or student) account's active status. This is the
+ * enable/disable half of staff lifecycle management — is_active is
+ * already checked by getSessionBundle(), so a disabled account is
+ * locked out immediately on their next request, no session
+ * invalidation logic needed separately.
+ */
+export async function setStaffActive(profileId: string, isActive: boolean) {
+  const bundle = await requireRole(["super_admin"]);
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("profiles").update({ is_active: isActive }).eq("id", profileId);
+
+  if (error) {
+    return { success: false as const, message: error.message };
+  }
+
+  await logAudit({
+    actorId: bundle.userId,
+    actorEmail: bundle.email,
+    action: isActive ? "user_enabled" : "user_disabled",
+    targetType: "profile",
+    targetId: profileId,
+  });
+
+  return { success: true as const };
+}
+
+/**
+ * Toggles a feature flag. Separate mechanism from setMaintenanceMode —
+ * see the note in migration 007 for why these aren't unified.
+ */
+export async function setFeatureFlag(key: string, enabled: boolean) {
+  const bundle = await requireRole(["super_admin"]);
+
+  const parsedKey = featureFlagKeySchema.safeParse(key);
+  if (!parsedKey.success) {
+    return { success: false as const, message: "Unknown feature flag." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("feature_flags")
+    .update({ enabled, updated_by: bundle.userId, updated_at: new Date().toISOString() })
+    .eq("key", parsedKey.data);
+
+  if (error) {
+    return { success: false as const, message: error.message };
+  }
+
+  await logAudit({
+    actorId: bundle.userId,
+    actorEmail: bundle.email,
+    action: "feature_flag_changed",
+    targetType: "feature_flag",
+    targetId: parsedKey.data,
+    metadata: { enabled },
   });
 
   return { success: true as const };

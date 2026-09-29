@@ -1,3 +1,4 @@
+/*src/components/section-heading.tsx*/
 import { cn } from "@/lib/utils";
 
 interface SectionHeadingProps {

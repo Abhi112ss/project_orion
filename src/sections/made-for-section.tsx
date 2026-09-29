@@ -1,3 +1,4 @@
+/*src/sections/made-for-section.tsx*/
 import Image from "next/image";
 import { SectionHeading } from "@/components/section-heading";
 import { Reveal } from "@/components/reveal";

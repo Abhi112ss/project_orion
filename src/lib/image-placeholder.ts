@@ -1,3 +1,4 @@
+/*src/lib/image-placeholder.ts*/
 export const shimmer = (w: number, h: number) => `
 <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
   <defs>

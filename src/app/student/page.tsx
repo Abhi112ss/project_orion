@@ -1,3 +1,4 @@
+/*src/app/student/page.tsx*/
 import { getSessionBundle } from "@/lib/auth/get-session-bundle";
 import { DashboardShell } from "@/components/dashboard-shell";
 

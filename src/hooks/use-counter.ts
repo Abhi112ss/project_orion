@@ -1,3 +1,4 @@
+/*src/hooks/use-counter.ts*/
 "use client";
 
 import { useEffect, useRef, useState } from "react";

@@ -1,3 +1,4 @@
+/*src/lib/auth/require-role.ts*/
 import { redirect } from "next/navigation";
 import { getSessionBundle } from "@/lib/auth/get-session-bundle";
 import { canAccessRole } from "@/lib/auth/role-routes";

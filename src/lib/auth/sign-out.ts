@@ -1,3 +1,4 @@
+/*src/lib/auth/sign-out.ts*/
 "use server";
 
 import { redirect } from "next/navigation";

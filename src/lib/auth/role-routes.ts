@@ -1,3 +1,4 @@
+/*src/lib/auth/role-routes.ts*/
 import type { Role } from "@/lib/auth/types";
 
 const ROLE_HOME: Record<Role, string> = {

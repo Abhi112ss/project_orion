@@ -1,3 +1,4 @@
+/*src/sections/footer.tsx*/
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { FolderGit2, RadioTower, Bird } from "lucide-react";
